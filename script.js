@@ -277,13 +277,12 @@ function initGame() {
     const signInOverlay = document.getElementById('signInOverlay');
     
     if (startGameBtn && tgUsername && signInOverlay) {
-        startGameBtn.addEventListener('click', () => {
-            if (tgUsername.value.trim()) {
-                username = tgUsername.value.trim();
-                signInOverlay.style.display = 'none';
-                startGame();
-            }
-        });
+        // Check cooldown on game load
+        if (checkCooldown()) {
+            signInOverlay.style.display = 'none';
+        }
+        
+        startGameBtn.addEventListener('click', handleStartGame);
     }
     
     document.getElementById('endGameBtn')?.addEventListener('click', endGame);
@@ -295,6 +294,9 @@ function handleStartGame() {
     
     if (tgUsername && signInOverlay) {
         if (tgUsername.value.trim()) {
+            if (checkCooldown()) {
+                return; // Don't start if in cooldown
+            }
             username = tgUsername.value.trim();
             signInOverlay.style.display = 'none';
             startGame();
@@ -326,6 +328,9 @@ function endGame() {
     const foundWordsList = Array.from(foundWords);
     const hiddenWordsFound = hiddenWords.filter(word => foundWords.has(word));
     const nextGameTime = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    
+    // Store next game time in localStorage
+    localStorage.setItem('nextGameTime', nextGameTime.getTime());
     
     // Create game summary overlay
     const overlay = document.createElement('div');
@@ -385,6 +390,50 @@ function startCountdown(nextGameTime) {
     
     updateCountdown();
     const countdownInterval = setInterval(updateCountdown, 1000);
+}
+
+function checkCooldown() {
+    const nextGameTime = localStorage.getItem('nextGameTime');
+    if (nextGameTime) {
+        const now = new Date().getTime();
+        const distance = nextGameTime - now;
+        
+        if (distance > 0) {
+            // Show cooldown overlay
+            const overlay = document.createElement('div');
+            overlay.className = 'game-over-overlay';
+            
+            const summary = document.createElement('div');
+            summary.className = 'game-summary';
+            
+            const content = `
+                <h2>Game Cooldown</h2>
+                <div class="summary-content">
+                    <p>You need to wait before playing again.</p>
+                    <div class="next-game">
+                        <p><strong>Next Game Available In:</strong></p>
+                        <div id="countdown" class="countdown"></div>
+                    </div>
+                </div>
+                <button id="closeGameSummary">Close</button>
+            `;
+            
+            summary.innerHTML = content;
+            overlay.appendChild(summary);
+            document.body.appendChild(overlay);
+            
+            // Start countdown
+            startCountdown(parseInt(nextGameTime));
+            
+            // Close button handler
+            document.getElementById('closeGameSummary').addEventListener('click', () => {
+                overlay.remove();
+            });
+            
+            return true; // Cooldown active
+        }
+    }
+    return false; // No cooldown
 }
 
 function checkGameEnd() {
