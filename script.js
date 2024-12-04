@@ -323,10 +323,68 @@ function endGame() {
     stopTimer();
     
     const finalTime = document.getElementById('timer').textContent;
-    const message = `Game Over!\nFinal Score: ${score}\nTime: ${finalTime}`;
-    alert(message);
+    const foundWordsList = Array.from(foundWords);
+    const hiddenWordsFound = hiddenWords.filter(word => foundWords.has(word));
+    const nextGameTime = new Date(Date.now() + 24 * 60 * 60 * 1000);
     
-    document.getElementById('signInOverlay').style.display = 'flex';
+    // Create game summary overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'game-over-overlay';
+    
+    const summary = document.createElement('div');
+    summary.className = 'game-summary';
+    
+    const content = `
+        <h2>Game Over!</h2>
+        <div class="summary-content">
+            <p><strong>Player ID:</strong> ${username}</p>
+            <p><strong>Final Score:</strong> ${score}</p>
+            <p><strong>Time:</strong> ${finalTime}</p>
+            <p><strong>Words Found:</strong> ${foundWordsList.length} / ${words.length}</p>
+            <p><strong>Hidden Treasures Found:</strong> ${hiddenWordsFound.length} / ${hiddenWords.length}</p>
+            <div class="next-game">
+                <p><strong>Next Game Available In:</strong></p>
+                <div id="countdown" class="countdown"></div>
+            </div>
+        </div>
+        <button id="closeGameSummary">Close</button>
+    `;
+    
+    summary.innerHTML = content;
+    overlay.appendChild(summary);
+    document.body.appendChild(overlay);
+    
+    // Start countdown
+    startCountdown(nextGameTime);
+    
+    // Close button handler
+    document.getElementById('closeGameSummary').addEventListener('click', () => {
+        overlay.remove();
+        document.getElementById('signInOverlay').style.display = 'flex';
+    });
+}
+
+function startCountdown(nextGameTime) {
+    const countdownElement = document.getElementById('countdown');
+    
+    function updateCountdown() {
+        const now = new Date().getTime();
+        const distance = nextGameTime - now;
+        
+        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+        
+        countdownElement.innerHTML = `${hours}h ${minutes}m ${seconds}s`;
+        
+        if (distance < 0) {
+            clearInterval(countdownInterval);
+            countdownElement.innerHTML = "You can play again!";
+        }
+    }
+    
+    updateCountdown();
+    const countdownInterval = setInterval(updateCountdown, 1000);
 }
 
 function checkGameEnd() {
